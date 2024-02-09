@@ -1,30 +1,56 @@
-name: continuous integration example 2
+name: "dropwizard-ci-pipeline1"
 
 on:
   push:
     branches:
-      main
+      - main
+      - week2
 
 jobs:
-  build-and-test-pleaase:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v1
 
-      - name: Install Java
+      - name: Setup Java
         uses: actions/setup-java@v1
         with:
           java-version: "11"
 
-      - name: Build with gradle!
+      - name: Build
         working-directory: .
         run: |
           chmod +x gradlew
           ./gradlew build -x test
       
-      - name: Run tests!!!!
+      - name: Test
         working-directory: .
         run: |
           chmod +x gradlew
           ./gradlew test
+
+  run-system-test:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Set Up python
+        uses: actions/setup-python@v1
+        with:
+          python-version: "3.7"
+
+      - run: pip install pytest requests
+
+      - name: Run docker Compose
+        working-directory: .
+        run: docker-compose up -d --build
+
+      - name: Run System Tests
+        working-directory: .
+        run: pytest
+
+      - name: Tear down docker compose
+        working-directory: .
+        run: docker-compose down
